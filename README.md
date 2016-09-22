@@ -17,7 +17,18 @@ This package depends on ardrone_autonomy package and gazebo7 so install these fi
 
 How to install the simulator:
 
-1. Install gazebo7 and ardrone_autonomy package
+1. Install ros-indigo-gazebo7-ros-pkgs, which will install gazebo7 and ardrone_autonomy package
+
+    ```
+    http://gazebosim.org/tutorials?tut=ros_wrapper_versions
+
+    ```
+
+( List of packages in case someone is installing them manually:
+gazebo7, gazebo7-common, gazebo7-plugin-base, libgazebo7:amd64, 
+libgazebo7-dev:amd64, ros-indigo-gazebo7-msgs, ros-indigo-gazebo7-plugins, 
+ros-indigo-gazebo7-ros, ros-indigo-gazebo7-ros-pkgs )
+
 
 2. Create a workspace for the simulator
 
@@ -26,18 +37,18 @@ How to install the simulator:
     cd  ~/ardrone_simulator/src
     catkin_init_workspace
     ```
-2. Download package
+3. Download package
 
     ```
     git clone https://github.com/pandora-auth-ros-pkg/tum_simulator
     ```
-3. Build the simulator
+4. Build the simulator
 
     ```
     cd ..
     catkin_make
     ```
-4. Source the environment
+5. Source the environment
 
     ```
     source devel/setup.bash

@@ -10,16 +10,5 @@
 	<arg name="model" value="$(find cvg_sim_gazebo)/urdf/quadrotor_sensors.urdf.xacro"/> 
 	</include>
 	
-  	<arg name="pid_namespace" default="pandora_ardrone2_pid" />
-
-  	<node
-    	name="pandora_ardrone2_pid_node"
-    	type="pandora_ardrone2_pid_node"
-    	pkg="pandora_ardrone2_pid"
-    	respawn="False"
-    	output="screen"
-    	ns="$(arg pid_namespace)" >
-  	</node>
-
 
 </launch>
