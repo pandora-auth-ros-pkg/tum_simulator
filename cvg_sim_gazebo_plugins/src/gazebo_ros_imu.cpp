@@ -149,8 +149,8 @@ void GazeboRosIMU::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf)
   }
 
   if (_sdf->HasElement("rpyOffset")) {
-    sdf::Vector3 sdfVec = _sdf->GetElement("rpyOffset")->Get<sdf::Vector3>();
-    math::Vector3 rpyOffset = math::Vector3(sdfVec.x, sdfVec.y, sdfVec.z);
+    ignition::math::Vector3d sdfVec = _sdf->GetElement("rpyOffset")->Get<ignition::math::Vector3d>();
+    math::Vector3 rpyOffset = math::Vector3(sdfVec.X(), sdfVec.Y(), sdfVec.Z());
     if (accelModel.offset.y == 0.0 && rpyOffset.x != 0.0) accelModel.offset.y = -rpyOffset.x * 9.8065;
     if (accelModel.offset.x == 0.0 && rpyOffset.y != 0.0) accelModel.offset.x =  rpyOffset.y * 9.8065;
     if (headingModel.offset == 0.0 && rpyOffset.z != 0.0) headingModel.offset =  rpyOffset.z;

@@ -79,6 +79,11 @@ void GazeboQuadrotorStateController::Load(physics::ModelPtr _model, sdf::Element
   else
     navdata_topic_ = _sdf->GetElement("navdataTopic")->Get<std::string>();
 
+  if (!_sdf->HasElement("navdatarawTopic"))
+    navdataraw_topic_ = "/ardrone/navdata_raw_measures";
+  else
+    navdataraw_topic_ = _sdf->GetElement("navdatarawTopic")->Get<std::string>();
+
   if (!_sdf->HasElement("imuTopic"))
     imu_topic_.clear();
   else
@@ -152,7 +157,10 @@ void GazeboQuadrotorStateController::Load(physics::ModelPtr _model, sdf::Element
     reset_subscriber_ = node_handle_->subscribe(ops);
   }
 
+  	// publish navdata and navdataraw
     m_navdataPub = node_handle_->advertise< ardrone_autonomy::Navdata >( navdata_topic_ , 25 );
+    m_navdatarawPub = node_handle_->advertise< ardrone_autonomy::navdata_raw_measures >( navdataraw_topic_ , 25 );
+
 
 
   // subscribe imu
@@ -453,6 +461,32 @@ void GazeboQuadrotorStateController::Update()
 //  last_navdata = navdata;
 
   m_navdataPub.publish( navdata );
+
+  ardrone_autonomy::navdata_raw_measures navdataraw;
+
+  navdataraw.header.stamp = ros::Time::now();
+  navdataraw.header.frame_id = "ardrone_base_link";
+  navdataraw.drone_time = 0;
+  navdataraw.tag = 0;
+  navdataraw.size = 0;
+  navdataraw.vbat_raw = 0;
+  navdataraw.us_debut_echo = 0;
+  navdataraw.us_fin_echo = 0;
+  navdataraw.us_association_echo = 0;
+  navdataraw.us_distance_echo = 0;
+  navdataraw.us_courbe_temps= 0;
+  navdataraw.us_courbe_valeur = 0;
+  navdataraw.us_courbe_ref = 0;
+  navdataraw.flag_echo_ini = 0;																																												
+  navdataraw.nb_echo = 0;
+  navdataraw.sum_echo = 0;
+  if (!sonar_topic_.empty())
+    navdataraw.alt_temp_raw = int(robot_altitude*1000);
+  else
+    navdataraw.alt_temp_raw = int(pose.pos.z * 1000.f);
+  navdataraw.gradient = 0;
+
+  m_navdatarawPub.publish( navdataraw );
 
   // save last time stamp
   last_time = sim_time;
