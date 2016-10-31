@@ -86,7 +86,17 @@ generate_messages(
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-  LIBRARIES diffdrive_plugin_6w reset_plugin hector_gazebo_ros_imu hector_gazebo_ros_magnetic hector_gazebo_ros_gps hector_gazebo_ros_sonar hector_gazebo_ros_baro hector_gazebo_quadrotor_simple_controller hector_gazebo_quadrotor_state_controller
+  LIBRARIES
+        diffdrive_plugin_6w
+        reset_plugin
+        hector_gazebo_ros_imu
+        hector_gazebo_ros_magnetic
+        hector_gazebo_ros_gps
+        hector_gazebo_ros_sonar
+        hector_gazebo_ros_baro
+        hector_gazebo_quadrotor_simple_controller
+        hector_gazebo_quadrotor_state_controller
+        gazebo_ros_air_friction
  CATKIN_DEPENDS image_transport
  DEPENDS system_lib
 )
@@ -124,11 +134,11 @@ add_library(hector_gazebo_ros_baro src/gazebo_ros_baro.cpp)
 add_dependencies(hector_gazebo_ros_baro cvg_sim_msgs_gencpp)
 
 add_library(hector_gazebo_quadrotor_simple_controller src/quadrotor_simple_controller.cpp)
-add_dependencies(hector_gazebo_quadrotor_simple_controller ardrone_autonomy_gencpp)
 
 add_library(hector_gazebo_quadrotor_state_controller src/quadrotor_state_controller.cpp)
-add_dependencies(hector_gazebo_quadrotor_state_controller ardrone_autonomy_gencpp)
 target_link_libraries(hector_gazebo_quadrotor_state_controller ${image_transport_LIBRARIES})
+
+add_library(gazebo_ros_air_friction src/gazebo_ros_air_friction.cpp)
 
 
 ## Declare a cpp executable

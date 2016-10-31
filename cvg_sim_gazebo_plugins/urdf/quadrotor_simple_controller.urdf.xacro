@@ -13,7 +13,8 @@ xmlns:xacro="http://ros.org/wiki/xacro"
         <updateRate>0.0</updateRate>
         <bodyName>base_link</bodyName>
         <stateTopic>ground_truth/state</stateTopic>
-        <imuTopic>ardrone/imu</imuTopic>
+        <imuTopic>/imu</imuTopic>
+        <magTopic>/mag</magTopic>
         <topicName>cmd_vel</topicName>
         <rollpitchProportionalGain>10.0</rollpitchProportionalGain>
         <rollpitchDifferentialGain>5.0</rollpitchDifferentialGain>
@@ -37,10 +38,13 @@ xmlns:xacro="http://ros.org/wiki/xacro"
         <alwaysOn>true</alwaysOn>
         <updateRate>0.0</updateRate>
         <bodyName>base_link</bodyName>
-        <stateTopic>ground_truth/state</stateTopic>
-        <imuTopic>ardrone/imu</imuTopic>
+        <imuTopic>imu</imuTopic>
+        <magTopic>mag</magTopic>
         <sonarTopic>sonar_height</sonarTopic>
-        <topicName>cmd_vel</topicName>
+        <speedDrift>0.5 0.5 0.5</speedDrift>
+        <speedGaussianNoise>0.35 0.35 0.3</speedGaussianNoise>
+        <speedDriftFrequency>0 0 0</speedDriftFrequency>
+        <speedOffset>0 0 0</speedOffset>
       </plugin>
     </gazebo>
   </xacro:macro>

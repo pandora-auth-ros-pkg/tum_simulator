@@ -158,6 +158,13 @@ private:
   math::Vector3 inertia;
   double mass;
 
+  // Force accumulates so we need to substract previous force
+  math::Vector3 prev_velocity;
+
+  math::Vector3 prev_angular;
+
+  bool hovering_;
+
   /// \brief save last_time
   common::Time last_time;
 

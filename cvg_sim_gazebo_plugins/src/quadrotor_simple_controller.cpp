@@ -41,17 +41,15 @@
 *
 */
 #include <hector_quadrotor_controller/quadrotor_simple_controller.h>
-#include "gazebo/common/Events.hh"
 #include "gazebo/physics/physics.hh"
-
-#include <cmath>
-#include <stdlib.h>
 
 namespace gazebo {
 
 GazeboQuadrotorSimpleController::GazeboQuadrotorSimpleController()
 {
   navi_state = 0;
+  hovering_ = true;
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -85,11 +83,6 @@ void GazeboQuadrotorSimpleController::Load(physics::ModelPtr _model, sdf::Elemen
     navdata_topic_ = "/ardrone/navdata";
   else
     navdata_topic_ = _sdf->GetElement("navdataTopic")->Get<std::string>();
-
-  if (!_sdf->HasElement("imuTopic"))
-    imu_topic_.clear();
-  else
-    imu_topic_ = _sdf->GetElement("imuTopic")->Get<std::string>();
 
   if (!_sdf->HasElement("stateTopic"))
     state_topic_.clear();
@@ -166,20 +159,6 @@ void GazeboQuadrotorSimpleController::Load(physics::ModelPtr _model, sdf::Elemen
       ros::VoidPtr(), &callback_queue_);
     navdata_subscriber_ = node_handle_->subscribe(ops);
   }
-    //m_navdataPub = node_handle_->advertise< ardrone_autonomy::Navdata >( "/ardrone/navdata", 10 );
-
-
-  // subscribe imu
-  if (!imu_topic_.empty())
-  {
-    ros::SubscribeOptions ops = ros::SubscribeOptions::create<sensor_msgs::Imu>(
-      imu_topic_, 1,
-      boost::bind(&GazeboQuadrotorSimpleController::ImuCallback, this, _1),
-      ros::VoidPtr(), &callback_queue_);
-    imu_subscriber_ = node_handle_->subscribe(ops);
-
-    ROS_INFO_NAMED("quadrotor_simple_controller", "Using imu information on topic %s as source of orientation and angular velocity.", imu_topic_.c_str());
-  }
 
   // subscribe state
   if (!state_topic_.empty())
@@ -192,9 +171,6 @@ void GazeboQuadrotorSimpleController::Load(physics::ModelPtr _model, sdf::Elemen
 
     ROS_INFO_NAMED("quadrotor_simple_controller", "Using state information on topic %s as source of state information.", state_topic_.c_str());
   }
-
-  // callback_queue_thread_ = boost::thread( boost::bind( &GazeboQuadrotorSimpleController::CallbackQueueThread,this ) );
-
 
   Reset();
 
@@ -211,6 +187,8 @@ void GazeboQuadrotorSimpleController::VelocityCallback(const geometry_msgs::Twis
 {
   velocity_command_ = *velocity;
 
+  if(velocity_command_.linear.x == 0 && velocity_command_.linear.y == 0) hovering_ = true;
+  else hovering_ = false;
 
   static common::Time last_sim_time = world->GetSimTime();
   static double time_counter_for_drift_noise = 0;
@@ -240,24 +218,14 @@ void GazeboQuadrotorSimpleController::VelocityCallback(const geometry_msgs::Twis
 
 }
 
-void GazeboQuadrotorSimpleController::ImuCallback(const sensor_msgs::ImuConstPtr& imu)
-{
-  pose.rot.Set(imu->orientation.w, imu->orientation.x, imu->orientation.y, imu->orientation.z);
-  euler = pose.rot.GetAsEuler();
-  angular_velocity = pose.rot.RotateVector(math::Vector3(imu->angular_velocity.x, imu->angular_velocity.y, imu->angular_velocity.z));
-}
-
 void GazeboQuadrotorSimpleController::StateCallback(const nav_msgs::OdometryConstPtr& state)
 {
   math::Vector3 velocity1(velocity);
 
-  if (imu_topic_.empty()) {
-    pose.pos.Set(state->pose.pose.position.x, state->pose.pose.position.y, state->pose.pose.position.z);
-    pose.rot.Set(state->pose.pose.orientation.w, state->pose.pose.orientation.x, state->pose.pose.orientation.y, state->pose.pose.orientation.z);
-    euler = pose.rot.GetAsEuler();
-    angular_velocity.Set(state->twist.twist.angular.x, state->twist.twist.angular.y, state->twist.twist.angular.z);
-  }
-
+  pose.pos.Set(state->pose.pose.position.x, state->pose.pose.position.y, state->pose.pose.position.z);
+  pose.rot.Set(state->pose.pose.orientation.w, state->pose.pose.orientation.x, state->pose.pose.orientation.y, state->pose.pose.orientation.z);
+  euler = pose.rot.GetAsEuler();
+  angular_velocity.Set(state->twist.twist.angular.x, state->twist.twist.angular.y, state->twist.twist.angular.z);
   velocity.Set(state->twist.twist.linear.x, state->twist.twist.linear.y, state->twist.twist.linear.z);
 
   // calculate acceleration
@@ -285,23 +253,13 @@ void GazeboQuadrotorSimpleController::Update()
   if (dt == 0.0) return;
 
   // Get Pose/Orientation from Gazebo (if no state subscriber is active)
-  if (imu_topic_.empty()) {
+  if (state_topic_.empty()) {
     pose = link->GetWorldPose();
     angular_velocity = link->GetWorldAngularVel();
     euler = pose.rot.GetAsEuler();
-  }
-  if (state_topic_.empty()) {
     acceleration = (link->GetWorldLinearVel() - velocity) / dt;
     velocity = link->GetWorldLinearVel();
   }
-
-//  static Time lastDebug;
-//  if ((world->GetSimTime() - lastDebug).Double() > 0.5) {
-//    ROS_DEBUG_STREAM_NAMED("quadrotor_simple_controller", "Velocity:         gazebo = [" << link->GetWorldLinearVel()   << "], state = [" << velocity << "]");
-//    ROS_DEBUG_STREAM_NAMED("quadrotor_simple_controller", "Acceleration:     gazebo = [" << link->GetWorldLinearAccel() << "], state = [" << acceleration << "]");
-//    ROS_DEBUG_STREAM_NAMED("quadrotor_simple_controller", "Angular Velocity: gazebo = [" << link->GetWorldAngularVel() << "], state = [" << angular_velocity << "]");
-//    lastDebug = world->GetSimTime();
-//  }
 
   // Get gravity
   math::Vector3 gravity_body = pose.rot.RotateVector(world->GetPhysicsEngine()->GetGravity());
@@ -314,30 +272,29 @@ void GazeboQuadrotorSimpleController::Update()
   math::Vector3 acceleration_xy = heading_quaternion.RotateVectorReverse(acceleration);
   math::Vector3 angular_velocity_body = pose.rot.RotateVectorReverse(angular_velocity);
 
-
   // update controllers
   force.Set(0.0, 0.0, 0.0);
   torque.Set(0.0, 0.0, 0.0);
-  double pitch_command =  velocity_command_.linear.x * 0.21;
-  double roll_command  = -velocity_command_.linear.y * 0.21;
-  torque.x = inertia.x *  controllers_.roll.update(roll_command, euler.x, angular_velocity_body.x, dt);
-  torque.y = inertia.y *  controllers_.pitch.update(pitch_command, euler.y, angular_velocity_body.y, dt);
-  // torque.x = inertia.x *  controllers_.roll.update(-velocity_command_.linear.y/gravity, euler.x, angular_velocity_body.x, dt);
-  // torque.y = inertia.y *  controllers_.pitch.update(velocity_command_.linear.x/gravity, euler.y, angular_velocity_body.y, dt);
+  double roll_command, pitch_command;
+
+  // if hovering use two pids => hovering is just a pid
+  if(hovering_){
+    pitch_command =  controllers_.velocity_x.update(velocity_command_.linear.x, velocity_xy.x, acceleration_xy.x, dt) / gravity;
+    roll_command  = -controllers_.velocity_y.update(velocity_command_.linear.y, velocity_xy.y, acceleration_xy.y, dt) / gravity;
+    torque.x = inertia.x *  controllers_.roll.update(roll_command, euler.x, angular_velocity_body.x, dt);
+    torque.y = inertia.y *  controllers_.pitch.update(pitch_command, euler.y, angular_velocity_body.y, dt);
+  }
+  else{
+    pitch_command =  velocity_command_.linear.x * 0.21;
+    roll_command  = -velocity_command_.linear.y * 0.21;
+    torque.x = inertia.x *  controllers_.roll.update(roll_command, euler.x, angular_velocity_body.x, dt);
+    torque.y = inertia.y *  controllers_.pitch.update(pitch_command, euler.y, angular_velocity_body.y, dt);
+  }
+
   torque.z = inertia.z *  controllers_.yaw.update(velocity_command_.angular.z * 1.66, angular_velocity.z, 0, dt);
   force.z  = mass      * (controllers_.velocity_z.update(velocity_command_.linear.z,  velocity.z, acceleration.z, dt) + load_factor * gravity);
   if (max_force_ > 0.0 && force.z > max_force_) force.z = max_force_;
   if (force.z < 0.0) force.z = 0.0;
-
-
-//  static double lastDebugOutput = 0.0;
-//  if (last_time.Double() - lastDebugOutput > 0.1) {
-//    ROS_DEBUG_NAMED("quadrotor_simple_controller", "Velocity = [%g %g %g], Acceleration = [%g %g %g]", velocity.x, velocity.y, velocity.z, acceleration.x, acceleration.y, acceleration.z);
-//    ROS_DEBUG_NAMED("quadrotor_simple_controller", "Command: linear = [%g %g %g], angular = [%g %g %g], roll/pitch = [%g %g]", velocity_command_.linear.x, velocity_command_.linear.y, velocity_command_.linear.z, velocity_command_.angular.x*180/M_PI, velocity_command_.angular.y*180/M_PI, velocity_command_.angular.z*180/M_PI, roll_command*180/M_PI, pitch_command*180/M_PI);
-//    ROS_DEBUG_NAMED("quadrotor_simple_controller", "Mass: %g kg, Inertia: [%g %g %g], Load: %g g", mass, inertia.x, inertia.y, inertia.z, load_factor);
-//    ROS_DEBUG_NAMED("quadrotor_simple_controller", "Force: [%g %g %g], Torque: [%g %g %g]", force.x, force.y, force.z, torque.x, torque.y, torque.z);
-//    lastDebugOutput = last_time.Double();
-//  }
 
   // process robot state information
   if(navi_state == LANDED_MODEL)

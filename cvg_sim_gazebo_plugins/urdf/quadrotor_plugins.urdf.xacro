@@ -9,5 +9,13 @@
     <canonicalBody>base_link</canonicalBody>
     <quadrotor_sensors/>
     <quadrotor_controller/>
+    <gazebo>
+          <plugin name="ros_air_friction" filename="libgazebo_ros_air_friction.so">
+            <alwaysOn>true</alwaysOn>
+            <bodyName>base_link</bodyName>
+            <frameId>ardrone_base_link</frameId>
+            <topicName>/ardrone/setforce</topicName>
+          </plugin>
+    </gazebo>
   </xacro:macro>
 </robot>
