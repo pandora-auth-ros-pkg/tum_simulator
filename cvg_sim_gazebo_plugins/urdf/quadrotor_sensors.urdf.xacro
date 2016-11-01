@@ -23,14 +23,14 @@ xmlns:xacro="http://ros.org/wiki/xacro"
         <accelGaussianNoise>0.35 0.35 0.3</accelGaussianNoise>
         <accelDriftFrequency>0 0 0</accelDriftFrequency>
         <accelOffset>0 0 0</accelOffset>
-        <rateDrift>0.0 0.0 0.5</rateDrift>
-        <rateGaussianNoise>0.00 0.00 0.5</rateGaussianNoise>
+        <rateDrift>0.0 0.0 2.0</rateDrift>
+        <rateGaussianNoise>0.00 0.00 0.0</rateGaussianNoise>
         <rateDriftFrequency>0 0 0</rateDriftFrequency>
         <rateOffset>0 0 0</rateOffset>
-        <headingDrift>0.0</headingDrift>
+        <headingDrift>2.0</headingDrift>
         <headingDriftFrequency>0.0</headingDriftFrequency>
         <headingOffset>0.0</headingOffset>
-        <headingGaussianNoise>0.00</headingGaussianNoise>
+        <headingGaussianNoise>0.0</headingGaussianNoise>
       </plugin>
 
       <plugin name="quadrotor_baro_sim" filename="libhector_gazebo_ros_baro.so">
